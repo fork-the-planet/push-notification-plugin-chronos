@@ -5,6 +5,7 @@
 #include "http-client.h"
 #include "http-url.h"
 #include "imap-bodystructure.h"
+#include "ioloop.h"
 #include "iostream-ssl.h"
 #include "istream.h"
 #include "json-parser.h"
@@ -13,12 +14,14 @@
 #include "message-size.h"
 #include "push-notification-drivers.h"
 #include "push-notification-event-messagenew.h"
+#include "push-notification-events.h"
 #include "push-notification-plugin.h"
 #include "push-notification-txn-msg.h"
 #include "settings-parser.h"
 #include "str.h"
 
 /* Default values. */
+static const char *const default_events[] = { "MessageNew", NULL };
 #define DEFAULT_MSG_MAX_SIZE 512000
 #define DEFAULT_RETRY_COUNT 1
 #define DEFAULT_TIMEOUT_MSECS 2000
@@ -184,9 +187,44 @@ chronos_push_notification_driver_init(
 
 static bool
 chronos_push_notification_driver_begin_txn(
-	struct push_notification_driver_txn *dtxn ATTR_UNUSED)
+	struct push_notification_driver_txn *dtxn)
 {
-	return FALSE;
+	struct chronos_push_notification_driver_config *dconfig =
+		dtxn->duser->context;
+
+	time_t expire = INT_MAX;
+	if (expire < ioloop_time) {
+		e_debug(dconfig->event, "Skipped due to expiration (%ld < %ld)",
+			(long)expire, (long)ioloop_time);
+		return FALSE;
+	}
+
+	const char *const *events = default_events;
+	for (; *events != NULL; events++) {
+		if (strcmp(*events, "MessageNew") == 0) {
+			e_debug(dconfig->event, "Handling %s event", *events);
+
+			/* The chronos push notification plugin is not directly
+			   accessing any data from the messagenew event, as the
+			   full body needs to be checked for a calendar invite.
+			   Unfortunately not setting any flags would prevent a
+			   messagenew-event from being properly initialized.
+			   Hence set an arbitrary flag to enable the process_msg
+			   callback from receiving viable data.
+
+			   See push_notification_event_messagenew_event() in
+			   the dovecot core project. */
+			struct push_notification_event_messagenew_config *config =
+				p_new(dtxn->ptxn->pool,
+				      struct push_notification_event_messagenew_config,
+				      1);
+			config->flags = PUSH_NOTIFICATION_MESSAGE_HDR_FROM;
+			push_notification_event_init(dtxn, *events, config,
+						     dconfig->event);
+		}
+	}
+
+	return TRUE;
 }
 
 static bool
