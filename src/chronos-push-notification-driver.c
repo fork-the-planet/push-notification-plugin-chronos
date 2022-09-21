@@ -31,6 +31,20 @@ static const char *const default_events[] = { "MessageNew", NULL };
 #define CHRONOS_PN_ICAL_MIME_SUBTYPE "calendar"
 #define CHRONOS_PN_ICAL_ATC_SUFFIX "ics"
 
+#define CHRONOS_PN_USER_CONTEXT(obj) \
+	MODULE_CONTEXT(obj, chronos_push_notification_user_module)
+#define CHRONOS_PN_USER_CONTEXT_REQUIRE(obj) \
+	MODULE_CONTEXT_REQUIRE(obj, chronos_push_notification_user_module)
+
+struct chronos_push_notification_driver_user {
+	union mail_user_module_context module_ctx;
+
+	HASH_TABLE(const char *, void *) dedup_table;
+};
+
+static MODULE_CONTEXT_DEFINE_INIT(chronos_push_notification_user_module,
+				  &mail_user_module_register);
+
 struct chronos_push_notification_driver_global {
 	struct http_client *http_client;
 	int refcount;
@@ -49,10 +63,33 @@ struct chronos_push_notification_driver_config {
 	struct chronos_push_notification_driver_http_ctx *http_ctx;
 	struct event *event;
 	struct http_url *http_url;
+	struct mail_user *user;
 	unsigned int http_max_retries;
 	unsigned int http_timeout_msecs;
 	uoff_t msg_max_size;
 };
+
+static void
+chronos_push_notification_driver_init_chronos_user(struct mail_user *user)
+{
+	struct chronos_push_notification_driver_user *chronos_user =
+		CHRONOS_PN_USER_CONTEXT(user);
+
+	chronos_user =
+		p_new(user->pool, struct chronos_push_notification_driver_user, 1);
+	hash_table_create(&chronos_user->dedup_table,
+			  user->pool, 0, str_hash, strcmp);
+	MODULE_CONTEXT_SET(user, chronos_push_notification_user_module,
+			   chronos_user);
+}
+
+static void
+chronos_push_notification_driver_chronos_user_deinit(struct mail_user *user)
+{
+	struct chronos_push_notification_driver_user *chronos_user =
+		CHRONOS_PN_USER_CONTEXT_REQUIRE(user);
+	hash_table_destroy(&chronos_user->dedup_table);
+}
 
 static void
 chronos_push_notification_driver_init_global(
@@ -102,10 +139,13 @@ chronos_push_notification_driver_init(
 	struct mail_user *user, pool_t pool, void **context,
 	const char **error_r)
 {
+	chronos_push_notification_driver_init_chronos_user(user);
+
 	struct chronos_push_notification_driver_config *dconfig;
 	const char *config_item, *error;
 
 	dconfig = p_new(pool, struct chronos_push_notification_driver_config, 1);
+	dconfig->user = user;
 	dconfig->event = event_create(user->event);
 	event_add_category(dconfig->event, push_notification_get_event_category());
 	event_set_append_log_prefix(dconfig->event, "push-notification-chronos: ");
@@ -340,6 +380,31 @@ chronos_push_notification_driver_read_mail_body(
 		return FALSE;
 	}
 
+	/* Try to deduplicate messages by Message-ID header if it exists. */
+	struct chronos_push_notification_driver_user *chronos_user =
+		CHRONOS_PN_USER_CONTEXT_REQUIRE(dconfig->user);
+	const char *key;
+	if (mail_get_first_header(mail, "Message-ID", &key) < 0) {
+		chronos_push_notification_driver_handle_mail_error(
+			dconfig, mail, mail_uid,
+			"Unable to lookup Message-ID header field for uid");
+	} else if (key != NULL && *key != '\0') {
+		if (hash_table_lookup(chronos_user->dedup_table, key) != NULL) {
+			e_debug(dconfig->event,
+				"Message UID %u Message-ID %s is a duplicate - not sending push notification",
+				mail_uid, key);
+			mail_free(&mail);
+			return FALSE;
+		} else {
+			e_debug(dconfig->event,
+				"Message UID %u Message-ID %s is not a duplicate",
+				mail_uid, key);
+			key = p_strdup(dconfig->user->pool, key);
+			hash_table_insert(chronos_user->dedup_table,
+					  key, POINTER_CAST(1));
+		}
+	}
+
 	/* Make sure email contains relevant calendar data. */
 	if (!chronos_push_notification_driver_ical_search(dconfig, mail)) {
 		e_debug(dconfig->event, "Mail does not contain calendar invite");
@@ -506,6 +571,7 @@ chronos_push_notification_driver_deinit(
 	struct chronos_push_notification_driver_config *dconfig = duser->context;
 	event_unref(&dconfig->event);
 
+	chronos_push_notification_driver_chronos_user_deinit(dconfig->user);
 	chronos_push_notification_driver_global_unref();
 }
 
