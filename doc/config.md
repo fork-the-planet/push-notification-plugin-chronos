@@ -1,4 +1,4 @@
-# Chronos Push Notification Driver
+# Chronos Push Notification Plugin Configuration
 
 This plugin allows you to send push notification to an endpoint of your choice
 whenever emails with calendar invitations are received.
