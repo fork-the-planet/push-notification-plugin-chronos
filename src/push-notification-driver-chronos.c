@@ -22,7 +22,7 @@
 
 /* Default values. */
 static const char *const default_events[] = { "MessageNew", NULL };
-#define DEFAULT_MSG_MAX_SIZE 512000
+#define DEFAULT_MSG_MAX_SIZE (1 * 1024 * 1024)
 #define DEFAULT_RETRY_COUNT 1
 #define DEFAULT_TIMEOUT_MSECS 2000
 
