@@ -35,7 +35,7 @@ Duration an HTTP request can take before being considered timed out.
 
 #### `msg_max_size`
 
-Default: `500kb`.
+Default: `1mb`.
 
 Size of message at which it is considered too large for being send as a push
 notification.
@@ -44,6 +44,6 @@ notification.
 
 ```
 plugin {
-  push_notification_driver = chronos:url=http://login:pass@node1.domain.tld:8009/preliminary/http-notify/v1/notify max_retries=2 timeout=2500ms msg_max_size=1mb
+  push_notification_driver = chronos:url=http://login:pass@node1.domain.tld:8009/preliminary/http-notify/v1/notify max_retries=2 timeout=2500ms msg_max_size=500kb
 }
 ```
