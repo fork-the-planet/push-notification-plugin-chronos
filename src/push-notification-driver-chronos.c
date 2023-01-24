@@ -347,7 +347,7 @@ push_notification_driver_chronos_handle_mail_error(
 	struct mail *mail, uint32_t mail_uid, const char *prefix)
 {
 	enum mail_error error;
-	const char *errstr = mailbox_get_last_internal_error(mail->box, &error);
+	const char *errstr = mail_get_last_internal_error(mail, &error);
 
 	if (error == MAIL_ERROR_EXPUNGED)
 		e_info(dconfig->event, "%s %u: %s", prefix, mail_uid, errstr);
