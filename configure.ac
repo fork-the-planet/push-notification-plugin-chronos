@@ -1,3 +1,4 @@
+AC_PREREQ([2.69])
 m4_define([push_notification_plugin_chronos_VERSION],
   m4_esyscmd_s([build-aux/git-version-gen]))
 
@@ -6,8 +7,6 @@ m4_define([push_notification_plugin_chronos_ABI_VERSION],
 
 m4_define([push_notification_plugin_chronos_TAR_VERSION],
   m4_esyscmd_s([build-aux/git-tarname-version-gen]))))
-
-AC_PREREQ([2.69])
 
 AC_INIT([Chronos Push Notification Plugin],
         [m4_defn([push_notification_plugin_chronos_VERSION])],
