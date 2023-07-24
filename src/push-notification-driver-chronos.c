@@ -98,18 +98,15 @@ push_notification_driver_chronos_init_global(
 {
 	chronos_global = i_new(struct push_notification_driver_chronos_global, 1);
 
-	struct http_client_settings http_set;
-	i_zero(&http_set);
+	static struct http_client_settings http_set;
+	http_client_settings_init(null_pool, &http_set);
 	/* This is going to use the first user's settings, but these
 	   are unlikely to change between users so it shouldn't matter
 	   much. */
-	http_set.debug = user->set->mail_debug;
 	http_set.max_attempts = config->http_max_retries + 1;
 	http_set.request_timeout_msecs = config->http_timeout_msecs;
-	http_set.event_parent = user->event;
-	http_set.ssl = user->ssl_set;
 
-	chronos_global->http_client = http_client_init(&http_set);
+	chronos_global->http_client = http_client_init(&http_set, user->event);
 	chronos_global->refcount = 1;
 }
 
