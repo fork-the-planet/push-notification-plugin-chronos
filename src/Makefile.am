@@ -2,12 +2,19 @@ AM_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
 	$(LIBDOVECOT_PUSH_NOTIFICATION_INCLUDE)
 
-push_notification_plugin_chronos_sources = \
-	push-notification-plugin-chronos.c \
-	push-notification-driver-chronos.c
+set_lib = lib22_push_notification_chronos_settings.la
+
+lib22_push_notification_chronos_settings_la_LDFLAGS = -module -avoid-version
+
+lib22_push_notification_chronos_settings_la_SOURCES = \
+	push-notification-chronos-settings.c
+
+settingsdir = $(dovecot_moduledir)/settings
+settings_LTLIBRARIES = $(set_lib)
 
 noinst_HEADERS = \
-	push-notification-plugin-chronos.h
+	push-notification-plugin-chronos.h \
+	push-notification-chronos-settings.h
 
 lib22_push_notification_chronos_plugin_la_LDFLAGS = -module -avoid-version
 
@@ -15,16 +22,16 @@ dovecot_module_LTLIBRARIES = \
 	lib22_push_notification_chronos_plugin.la
 
 lib22_push_notification_chronos_plugin_la_LIBADD = \
-	$(LIBDOVECOT)
+	$(LIBDOVECOT) \
+	$(MODULE_LIBS)
 
 lib22_push_notification_chronos_plugin_la_DEPENDENCIES = \
 	$(LIBDOVECOT_DEPS)
 
 lib22_push_notification_chronos_plugin_la_SOURCES = \
-	$(push_notification_plugin_chronos_sources)
-
-settingsdir = $(dovecot_moduledir)/settings
-settings_LTLIBRARIES = $(set_lib)
+	push-notification-chronos-settings.c \
+	push-notification-plugin-chronos.c \
+	push-notification-driver-chronos.c
 
 headers =
 
