@@ -15,25 +15,13 @@ mail_plugins = $mail_plugins notify push_notification push_notification_chronos
 
 ### Available configuration options
 
-#### `url`
+#### `push_notification_chronos_url`
 
 Required.
 
 HTTP URL endpoint to send formatted push notification payload to.
 
-#### `max_retries`
-
-Default: `1`.
-
-Number of HTTP retries in case of timeouts.
-
-#### `timeout`
-
-Default: `2s`.
-
-Duration an HTTP request can take before being considered timed out.
-
-#### `msg_max_size`
+#### `push_notification_chronos_msg_max_size`
 
 Default: `1mb`.
 
@@ -43,7 +31,9 @@ notification.
 ### Example configuration
 
 ```
-plugin {
-  push_notification_driver = chronos:url=http://login:pass@node1.domain.tld:8009/preliminary/http-notify/v1/notify max_retries=2 timeout=2500ms msg_max_size=500kb
+push_notification chronos {
+  driver = chronos
+  push_notification_chronos_url = http://login:pass@node1.domain.tld:8009/preliminary/http-notify/v1/notify
+  push_notification_chronos_msg_max_size = 500kb
 }
 ```
