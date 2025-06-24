@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Open-Xchange Software GmbH, see the included COPYING file */
+/* Copyright (c) 2022 Dovect Authors, see the included LICENSE file */
 
 #include "lib.h"
 

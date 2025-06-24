@@ -1,4 +1,4 @@
-/* Copyright (c) 2023 Open-Xchange Software GmbH, see the included COPYING file */
+/* Copyright (c) 2023 Dovect Authors, see the included LICENSE file */
 
 #include "lib.h"
 #include "http-url.h"
